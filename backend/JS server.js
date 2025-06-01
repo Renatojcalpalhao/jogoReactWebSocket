@@ -180,40 +180,40 @@ function advancePhase(room) {
 
 io.on('connection', (socket) => {
   socket.on('joinRoom', ({ roomId, name, avatar }) => {
-    if (!rooms[roomId]) {
-      rooms[roomId] = {
-        players: [],
-        communityCards: [],
-        pot: 0,
-        currentBet: bigBlind,
-        playerTurn: 0,
-        deck: [],
-        chat: []
-      };
-    }
-    // Evita duplicidade de jogadores
-    if (!rooms[roomId].players.find(p => p.id === socket.id)) {
-      const seat = rooms[roomId].players.length;
-      rooms[roomId].players.push({
-        id: socket.id,
-        name,
-        avatar: avatar || '🧑',
-        chips: initialChips,
-        seat,
-        bet: 0,
-        hand: [],
-        folded: false
-      });
-    }
-    socket.join(roomId);
-
-    // Se for o primeiro jogador, inicia rodada
-    if (rooms[roomId].players.length === 1) {
-      startNewRound(rooms[roomId]);
-    }
-
-    // Envia estado do jogo para todos
-    io.to(roomId).emit('gameState', getGameState(rooms[roomId]));
+  if (!rooms[roomId]) {
+  rooms[roomId] = {
+  players: [],
+  communityCards: [],
+  pot: 0,
+  currentBet: bigBlind,
+  playerTurn: 0,
+  deck: [],
+  chat: []
+  };
+  }
+  // Evita duplicidade de jogadores
+  if (!rooms[roomId].players.find(p => p.id === socket.id)) {
+  const seat = rooms[roomId].players.length;
+  rooms[roomId].players.push({
+  id: socket.id,
+  name,
+  avatar: avatar || '🧑',
+  chips: initialChips,
+  seat,
+  bet: 0,
+  hand: [], // Novo jogador só recebe cartas na próxima rodada
+  folded: true // Marca como fora da rodada atual
+  });
+  }
+  socket.join(roomId);
+  
+  // Se for o primeiro jogador, inicia rodada
+  if (rooms[roomId].players.length === 1) {
+  startNewRound(rooms[roomId]);
+  }
+  
+  // Envia estado do jogo para todos (todos aparecem na mesa, mas só quem tem hand participa da rodada)
+  io.to(roomId).emit('gameState', getGameState(rooms[roomId]));
   });
 
   socket.on('playerAction', ({ roomId, action, data }) => {
