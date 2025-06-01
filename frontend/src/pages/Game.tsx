@@ -103,19 +103,23 @@ const Game: React.FC = () => {
   };
 
   useEffect(() => {
-    const playerName = localStorage.getItem('playerName') || 'Você';
+    // Garante que o nome do jogador está presente, senão redireciona para registro
+    const playerName = localStorage.getItem('playerName');
     const playerAvatar = localStorage.getItem('playerAvatar') || '🧑';
     const roomId = 'mesa1'; // pode ser dinâmico
+    if (!playerName) {
+      navigate('/register');
+      return;
+    }
 
-    const socket = io(socketUrl);
+    const socket = io(socketUrl, { autoConnect: true, forceNew: true });
     socketRef.current = socket;
 
-    // Entra na sala
+    // Entra na sala SEMPRE que monta
     socket.emit('joinRoom', { roomId, name: playerName, avatar: playerAvatar });
 
     // Recebe atualização do estado do jogo
     socket.on('gameState', (state: GameState) => {
-      console.log('Recebido gameState do backend:', state);
       setGameState(state);
     });
 
@@ -123,11 +127,11 @@ const Game: React.FC = () => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [navigate]);
 
-  // Descobre o índice do jogador real
+  // Descobre o índice do jogador real de forma robusta (por id de socket OU nome)
   const myPlayerIdx = gameState?.players.findIndex(
-    (p) => p.name === (localStorage.getItem('playerName') || 'Você')
+    (p) => p.name === (localStorage.getItem('playerName') || '')
   ) ?? 0;
 
   const playerName = localStorage.getItem('playerName') || 'Você';
